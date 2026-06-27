@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_login_gradient"
+    android:orientation="vertical"
+    android:padding="18dp">
+
+    <TextView
+        android:id="@+id/tvTituloMisPosts"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Mis publicaciones"
+        android:textAlignment="center"
+        android:textColor="#FFFFFF"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:layout_marginTop="8dp" />
+
+    <TextView
+        android:id="@+id/tvSubtituloMisPosts"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Administra tus productos, servicios y anuncios"
+        android:textAlignment="center"
+        android:textColor="#A8B1D1"
+        android:textSize="14sp"
+        android:layout_marginTop="6dp"
+        android:layout_marginBottom="14dp" />
+
+    <LinearLayout
+        android:id="@+id/panelFiltros"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:background="@drawable/bg_filter_panel">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:background="@drawable/bg_search_futuristic">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="⌕"
+                android:textColor="#2EE6FF"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:layout_marginEnd="10dp" />
+
+            <EditText
+                android:id="@+id/etBuscar"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:hint="Buscar publicación..."
+                android:inputType="text"
+                android:maxLines="1"
+                android:singleLine="true"
+                android:textColor="#FFFFFF"
+                android:textColorHint="#8E9AC7"
+                android:textSize="15sp" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="12dp">
+
+            <Spinner
+                android:id="@+id/spFiltroCategoria"
+                android:layout_width="0dp"
+                android:layout_height="50dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_spinner_futuristic"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:popupBackground="#151B33" />
+
+            <Space
+                android:layout_width="10dp"
+                android:layout_height="1dp" />
+
+            <Spinner
+                android:id="@+id/spFiltroTipo"
+                android:layout_width="0dp"
+                android:layout_height="50dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_spinner_futuristic"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:popupBackground="#151B33" />
+
+        </LinearLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnAplicarFiltro"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:layout_marginTop="12dp"
+            android:text="Limpiar filtros"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            app:backgroundTint="#5B3DF5"
+            app:cornerRadius="16dp"
+            app:icon="@android:drawable/ic_menu_close_clear_cancel"
+            app:iconTint="#FFFFFF" />
+
+    </LinearLayout>
+
+    <ScrollView
+        android:id="@+id/scrollPosts"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="16dp"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:id="@+id/contenedorPosts"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="20dp" />
+
+    </ScrollView>
+
+</LinearLayout>
