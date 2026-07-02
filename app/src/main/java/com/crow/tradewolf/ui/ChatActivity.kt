@@ -28,6 +28,8 @@ import com.bumptech.glide.Glide
 import com.crow.tradewolf.R
 import com.crow.tradewolf.data.repository.ChatRepository
 import com.crow.tradewolf.model.Message
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.database.FirebaseDatabase
@@ -57,6 +59,7 @@ class ChatActivity : AppCompatActivity() {
     private lateinit var btnGallery: MaterialButton
     private lateinit var btnCamera: MaterialButton
     private lateinit var btnAudio: MaterialButton
+    private lateinit var btnLocation: MaterialButton
     private lateinit var btnComprar: MaterialButton
     private lateinit var tvChatUser: TextView
 
@@ -77,6 +80,18 @@ class ChatActivity : AppCompatActivity() {
     
     // Variable para reproducción de audio
     private var mediaPlayer: MediaPlayer? = null
+    
+    // Variables para ubicación
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private val locationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            getCurrentLocationAndSend()
+        } else {
+            Toast.makeText(this, "Permiso de ubicación denegado", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     private val galleryLauncher = registerForActivityResult(
         ActivityResultContracts.GetContent()
@@ -184,8 +199,12 @@ class ChatActivity : AppCompatActivity() {
         btnGallery = findViewById(R.id.btnGallery)
         btnCamera = findViewById(R.id.btnCamera)
         btnAudio = findViewById(R.id.btnAudio)
+        btnLocation = findViewById(R.id.btnLocation)
         btnComprar = findViewById(R.id.btnComprar)
         tvChatUser = findViewById(R.id.tvChatUser)
+        
+        // Inicializar cliente de ubicación
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
         tvChatUser.text = receiverName
 
@@ -212,9 +231,87 @@ class ChatActivity : AppCompatActivity() {
         btnAudio.setOnClickListener {
             toggleAudioRecording()
         }
+        
+        btnLocation.setOnClickListener {
+            checkLocationPermissionsAndSend()
+        }
 
         btnComprar.setOnClickListener {
             Toast.makeText(this, "Función de compra en desarrollo", Toast.LENGTH_SHORT).show()
+        }
+    }
+    
+    private fun checkLocationPermissionsAndSend() {
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            getCurrentLocationAndSend()
+        } else {
+            locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+    }
+    
+    private fun getCurrentLocationAndSend() {
+        try {
+            if (ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED
+            ) {
+                fusedLocationClient.lastLocation
+                    .addOnSuccessListener { location ->
+                        if (location != null) {
+                            sendLocationMessage(location.latitude, location.longitude)
+                        } else {
+                            Toast.makeText(this, "No se pudo obtener la ubicación", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    .addOnFailureListener {
+                        Toast.makeText(this, "Error al obtener ubicación: ${it.message}", Toast.LENGTH_SHORT).show()
+                    }
+            }
+        } catch (e: Exception) {
+            Toast.makeText(this, "Error al obtener ubicación: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+    
+    private fun sendLocationMessage(latitude: Double, longitude: Double) {
+        val progressDialog = ProgressDialog(this)
+        progressDialog.setMessage("Enviando ubicación...")
+        progressDialog.setCancelable(false)
+        progressDialog.show()
+
+        chatRepository.sendMessageWithLocation(
+            receiverId,
+            latitude,
+            longitude,
+            onSuccess = {
+                progressDialog.dismiss()
+                Toast.makeText(this, "Ubicación enviada", Toast.LENGTH_SHORT).show()
+            },
+            onError = { error ->
+                progressDialog.dismiss()
+                Toast.makeText(this, "Error: $error", Toast.LENGTH_SHORT).show()
+            }
+        )
+    }
+    
+    private fun openLocationInMaps(latitude: Double, longitude: Double) {
+        try {
+            val uri = android.net.Uri.parse("geo:$latitude,$longitude?q=$latitude,$longitude(Ubicación)")
+            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
+            intent.setPackage("com.google.android.apps.maps")
+            if (intent.resolveActivity(packageManager) != null) {
+                startActivity(intent)
+            } else {
+                val uriWeb = android.net.Uri.parse("https://www.google.com/maps?q=$latitude,$longitude")
+                val intentWeb = android.content.Intent(android.content.Intent.ACTION_VIEW, uriWeb)
+                startActivity(intentWeb)
+            }
+        } catch (e: Exception) {
+            Toast.makeText(this, "Error al abrir ubicación: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -619,30 +716,50 @@ class ChatActivity : AppCompatActivity() {
         )
     }
     
-    // Función para reproducir audio
+    // Función para reproducir audio mejorada
     private fun playAudio(audioUri: Uri) {
         try {
             // Detener cualquier reproducción anterior
-            mediaPlayer?.release()
+            mediaPlayer?.apply {
+                if (isPlaying) {
+                    stop()
+                }
+                release()
+            }
             mediaPlayer = null
             
             // Crear nuevo MediaPlayer
-            mediaPlayer = MediaPlayer()
-            mediaPlayer?.setDataSource(this, audioUri)
-            mediaPlayer?.prepareAsync()
-            
-            mediaPlayer?.setOnPreparedListener {
-                it.start()
-            }
-            
-            mediaPlayer?.setOnCompletionListener {
-                it.release()
-                mediaPlayer = null
+            mediaPlayer = MediaPlayer().apply {
+                setAudioAttributes(
+                    android.media.AudioAttributes.Builder()
+                        .setContentType(android.media.AudioAttributes.CONTENT_TYPE_MUSIC)
+                        .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
+                        .build()
+                )
+                
+                setDataSource(this@ChatActivity, audioUri)
+                
+                setOnPreparedListener {
+                    it.start()
+                    Toast.makeText(this@ChatActivity, "Reproduciendo audio...", Toast.LENGTH_SHORT).show()
+                }
+                
+                setOnCompletionListener {
+                    it.release()
+                    mediaPlayer = null
+                }
+                
+                setOnErrorListener { _, what, extra ->
+                    Toast.makeText(this@ChatActivity, "Error al reproducir: $what", Toast.LENGTH_SHORT).show()
+                    true
+                }
+                
+                prepareAsync()
             }
             
         } catch (e: Exception) {
             e.printStackTrace()
-            Toast.makeText(this, "Error al reproducir audio", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Error al reproducir audio: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -709,6 +826,15 @@ class ChatActivity : AppCompatActivity() {
                 
             private val tvAudioDuration: TextView =
                 itemView.findViewById(R.id.tvAudioDuration)
+                
+            private val llLocationMessage: LinearLayout =
+                itemView.findViewById(R.id.llLocationMessage)
+                
+            private val btnOpenLocation: MaterialButton =
+                itemView.findViewById(R.id.btnOpenLocation)
+                
+            private val tvLocationText: TextView =
+                itemView.findViewById(R.id.tvLocationText)
 
             fun bind(message: Message) {
                 bindMessageContent(
@@ -719,7 +845,10 @@ class ChatActivity : AppCompatActivity() {
                     ivMessageImage = ivMessageImage,
                     llAudioMessage = llAudioMessage,
                     btnPlayAudio = btnPlayAudio,
-                    tvAudioDuration = tvAudioDuration
+                    tvAudioDuration = tvAudioDuration,
+                    llLocationMessage = llLocationMessage,
+                    btnOpenLocation = btnOpenLocation,
+                    tvLocationText = tvLocationText
                 )
             }
         }
@@ -743,6 +872,15 @@ class ChatActivity : AppCompatActivity() {
                 
             private val tvAudioDuration: TextView =
                 itemView.findViewById(R.id.tvAudioDuration)
+                
+            private val llLocationMessage: LinearLayout =
+                itemView.findViewById(R.id.llLocationMessage)
+                
+            private val btnOpenLocation: MaterialButton =
+                itemView.findViewById(R.id.btnOpenLocation)
+                
+            private val tvLocationText: TextView =
+                itemView.findViewById(R.id.tvLocationText)
 
             fun bind(message: Message) {
                 bindMessageContent(
@@ -753,7 +891,10 @@ class ChatActivity : AppCompatActivity() {
                     ivMessageImage = ivMessageImage,
                     llAudioMessage = llAudioMessage,
                     btnPlayAudio = btnPlayAudio,
-                    tvAudioDuration = tvAudioDuration
+                    tvAudioDuration = tvAudioDuration,
+                    llLocationMessage = llLocationMessage,
+                    btnOpenLocation = btnOpenLocation,
+                    tvLocationText = tvLocationText
                 )
             }
         }
@@ -766,21 +907,38 @@ class ChatActivity : AppCompatActivity() {
             ivMessageImage: ImageView,
             llAudioMessage: LinearLayout,
             btnPlayAudio: MaterialButton,
-            tvAudioDuration: TextView
+            tvAudioDuration: TextView,
+            llLocationMessage: LinearLayout,
+            btnOpenLocation: MaterialButton,
+            tvLocationText: TextView
         ) {
             if (message.type == "audio") {
                 llAudioMessage.visibility = View.VISIBLE
                 ivMessageImage.visibility = View.GONE
                 tvMessageText.visibility = View.GONE
+                llLocationMessage.visibility = View.GONE
                 
                 btnPlayAudio.setOnClickListener {
                     playAudio(Uri.parse(message.imageUrl))
+                }
+                
+            } else if (message.type == "location" && message.latitude != null && message.longitude != null) {
+                llLocationMessage.visibility = View.VISIBLE
+                ivMessageImage.visibility = View.GONE
+                tvMessageText.visibility = View.GONE
+                llAudioMessage.visibility = View.GONE
+                
+                tvLocationText.text = "📍 Ubicación: ${String.format("%.4f", message.latitude)}, ${String.format("%.4f", message.longitude)}"
+                
+                btnOpenLocation.setOnClickListener {
+                    openLocationInMaps(message.latitude, message.longitude)
                 }
                 
             } else if (message.imageUrl.isNotEmpty()) {
                 llAudioMessage.visibility = View.GONE
                 ivMessageImage.visibility = View.VISIBLE
                 tvMessageText.visibility = View.VISIBLE
+                llLocationMessage.visibility = View.GONE
 
                 Glide.with(itemView.context)
                     .load(Uri.parse(message.imageUrl))
@@ -794,6 +952,7 @@ class ChatActivity : AppCompatActivity() {
             } else {
                 llAudioMessage.visibility = View.GONE
                 ivMessageImage.visibility = View.GONE
+                llLocationMessage.visibility = View.GONE
             }
 
             if (message.text.isNotEmpty()) {

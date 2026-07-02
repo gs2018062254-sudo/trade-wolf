@@ -1,6 +1,9 @@
 package com.crow.tradewolf.ui
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.location.Location
 import android.os.Bundle
 import android.widget.ArrayAdapter
 import android.widget.EditText
@@ -10,7 +13,10 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import com.crow.tradewolf.R
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
 import com.google.android.material.button.MaterialButton
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
@@ -34,10 +40,15 @@ class CreatePostActivity : AppCompatActivity() {
     private lateinit var tvImagenHint: TextView
     private lateinit var btnTomarFoto: MaterialButton
     private lateinit var btnCargarImagen: MaterialButton
+    private lateinit var btnObtenerUbicacion: MaterialButton
+    private lateinit var tvUbicacion: TextView
     private lateinit var btnPublicar: MaterialButton
 
     private var imagenUri: android.net.Uri? = null
     private var imagenBitmap: Bitmap? = null
+    private var latitud: Double? = null
+    private var longitud: Double? = null
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
 
     private val galeriaLauncher = registerForActivityResult(
         ActivityResultContracts.GetContent()
@@ -109,13 +120,70 @@ class CreatePostActivity : AppCompatActivity() {
         tvImagenHint = findViewById(R.id.tvImagenHint)
         btnTomarFoto = findViewById(R.id.btnTomarFoto)
         btnCargarImagen = findViewById(R.id.btnCargarImagen)
+        btnObtenerUbicacion = findViewById(R.id.btnObtenerUbicacion)
+        tvUbicacion = findViewById(R.id.tvUbicacion)
         btnPublicar = findViewById(R.id.btnPublicar)
+
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
         configurarSpinners()
         configurarBotonesImagen()
+        configurarBotonUbicacion()
 
         btnPublicar.setOnClickListener {
             validarYPublicar()
+        }
+    }
+
+    private fun configurarBotonUbicacion() {
+        btnObtenerUbicacion.setOnClickListener {
+            verificarPermisosYObtenerUbicacion()
+        }
+    }
+
+    private fun verificarPermisosYObtenerUbicacion() {
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            obtenerUbicacion()
+        } else {
+            requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+    }
+
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            obtenerUbicacion()
+        } else {
+            Toast.makeText(this, "Permiso de ubicación denegado", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun obtenerUbicacion() {
+        try {
+            if (ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED
+            ) {
+                fusedLocationClient.lastLocation
+                    .addOnSuccessListener { location: Location? ->
+                        if (location != null) {
+                            latitud = location.latitude
+                            longitud = location.longitude
+                            tvUbicacion.text = "Ubicación: ${String.format("%.4f", latitud)}, ${String.format("%.4f", longitud)}"
+                            tvUbicacion.setTextColor(0xFF00C853.toInt())
+                        } else {
+                            Toast.makeText(this, "No se pudo obtener la ubicación", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+            }
+        } catch (e: Exception) {
+            Toast.makeText(this, "Error al obtener ubicación: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -304,6 +372,8 @@ class CreatePostActivity : AppCompatActivity() {
             "precio" to precio,
             "whatsapp" to whatsapp,
             "imagenUrl" to imagenUrl,
+            "latitud" to latitud,
+            "longitud" to longitud,
             "createdAt" to System.currentTimeMillis()
         )
 

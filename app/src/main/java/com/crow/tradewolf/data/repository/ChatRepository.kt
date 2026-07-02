@@ -145,8 +145,8 @@ class ChatRepository {
         }
         
         val audioId = UUID.randomUUID().toString()
-        // Usar el mismo patrón que las imágenes para evitar problemas de permisos
-        val audioRef = storage.child("chat_images/$audioId.m4a")
+        // Carpeta separada para audios de chat
+        val audioRef = storage.child("chat_audio/$audioId.m4a")
         
         audioRef.putFile(Uri.fromFile(audioFile))
             .addOnSuccessListener {
@@ -200,6 +200,47 @@ class ChatRepository {
                 onError(e.message ?: "Error al enviar mensaje")
             }
     }
+    
+    // Enviar mensaje con ubicación
+    fun sendMessageWithLocation(
+        receiverId: String,
+        latitude: Double,
+        longitude: Double,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val currentUserId = getCurrentUserId() ?: run {
+            onError("Usuario no autenticado")
+            return
+        }
+
+        val chatId = getChatId(currentUserId, receiverId)
+        val messageId = db.child("chats").child(chatId).child("messages").push().key ?: return
+
+        val message = hashMapOf(
+            "messageId" to messageId,
+            "senderId" to currentUserId,
+            "receiverId" to receiverId,
+            "text" to "📍 Ubicación",
+            "imageUrl" to "",
+            "type" to "location",
+            "latitude" to latitude,
+            "longitude" to longitude,
+            "visto" to false,
+            "timestamp" to ServerValue.TIMESTAMP
+        )
+
+        db.child("chats").child(chatId).child("messages").child(messageId)
+            .setValue(message)
+            .addOnSuccessListener {
+                // Actualizar el último mensaje en la lista de chats de ambos usuarios
+                updateLastMessage(chatId, currentUserId, receiverId, "📍 Ubicación")
+                onSuccess()
+            }
+            .addOnFailureListener { e ->
+                onError(e.message ?: "Error al enviar ubicación")
+            }
+    }
 
     // Actualizar el último mensaje del chat
     private fun updateLastMessage(
@@ -247,10 +288,12 @@ class ChatRepository {
                         val text = messageSnapshot.child("text").getValue(String::class.java) ?: ""
                         val imageUrl = messageSnapshot.child("imageUrl").getValue(String::class.java) ?: ""
                         val type = messageSnapshot.child("type").getValue(String::class.java) ?: "text"
+                        val latitude = messageSnapshot.child("latitude").getValue(Double::class.java)
+                        val longitude = messageSnapshot.child("longitude").getValue(Double::class.java)
                         val visto = messageSnapshot.child("visto").getValue(Boolean::class.java) ?: false
                         val timestamp = messageSnapshot.child("timestamp").getValue(Long::class.java) ?: System.currentTimeMillis()
 
-                        val message = Message(messageId, senderId, receiverId, text, imageUrl, type, visto, timestamp)
+                        val message = Message(messageId, senderId, receiverId, text, imageUrl, type, latitude, longitude, visto, timestamp)
                         messages.add(message)
                     }
                     onNewMessage(messages)

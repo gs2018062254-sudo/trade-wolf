@@ -10,5 +10,7 @@ data class Post(
     val precio: String = "",
     val whatsapp: String = "",
     val imagenUrl: String = "",
+    val latitud: Double? = null,
+    val longitud: Double? = null,
     val createdAt: Long = System.currentTimeMillis()
 )

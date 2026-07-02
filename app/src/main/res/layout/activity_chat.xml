@@ -166,6 +166,21 @@
             app:iconPadding="0dp"
             app:cornerRadius="23dp"
             app:backgroundTint="#1E2540" />
+            
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnLocation"
+            style="@style/Widget.Material3.Button.IconButton"
+            android:layout_width="46dp"
+            android:layout_height="46dp"
+            android:layout_marginEnd="8dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:contentDescription="Ubicación"
+            app:icon="@android:drawable/ic_menu_myplaces"
+            app:iconTint="#FF5722"
+            app:iconPadding="0dp"
+            app:cornerRadius="23dp"
+            app:backgroundTint="#1E2540" />
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/tilMessage"

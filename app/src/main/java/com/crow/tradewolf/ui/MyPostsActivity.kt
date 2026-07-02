@@ -166,6 +166,12 @@ class MyPostsActivity : AppCompatActivity() {
                         post["whatsapp"] = postSnapshot.child("whatsapp").getValue(String::class.java) ?: ""
                         post["imagenUrl"] = postSnapshot.child("imagenUrl").getValue(String::class.java) ?: ""
                         post["vendido"] = postSnapshot.child("vendido").getValue(String::class.java) ?: "false"
+                        val latitud = postSnapshot.child("latitud").getValue(Double::class.java)
+                        val longitud = postSnapshot.child("longitud").getValue(Double::class.java)
+                        if (latitud != null && longitud != null) {
+                            post["latitud"] = latitud.toString()
+                            post["longitud"] = longitud.toString()
+                        }
 
                         listaPosts.add(post)
                     }
@@ -293,12 +299,17 @@ class MyPostsActivity : AppCompatActivity() {
         tvDescripcion.setPadding(0, 0, 0, dp(10))
 
         val tvInfo = TextView(this)
-        tvInfo.text = """
-            Categoría: ${post["categoria"].orEmpty().ifBlank { "Sin categoría" }}
-            Tipo: ${post["tipo"].orEmpty().ifBlank { "Sin tipo" }}
-            Precio: S/ ${post["precio"].orEmpty().ifBlank { "0.00" }}
-            WhatsApp: ${post["whatsapp"].orEmpty().ifBlank { "No registrado" }}
-        """.trimIndent()
+        val tieneUbicacion = post.containsKey("latitud") && post.containsKey("longitud")
+        val infoTexto = buildString {
+            append("Categoría: ${post["categoria"].orEmpty().ifBlank { "Sin categoría" }}\n")
+            append("Tipo: ${post["tipo"].orEmpty().ifBlank { "Sin tipo" }}\n")
+            append("Precio: S/ ${post["precio"].orEmpty().ifBlank { "0.00" }}\n")
+            append("WhatsApp: ${post["whatsapp"].orEmpty().ifBlank { "No registrado" }}")
+            if (tieneUbicacion) {
+                append("\n📍 Ubicación: ${post["latitud"]}, ${post["longitud"]}")
+            }
+        }
+        tvInfo.text = infoTexto
         tvInfo.setTextColor(Color.rgb(180, 190, 220))
         tvInfo.textSize = 14f
 

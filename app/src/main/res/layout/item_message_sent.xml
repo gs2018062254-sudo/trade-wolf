@@ -66,6 +66,37 @@
                     android:textColor="#FFFFFF"
                     android:text="Audio" />
             </LinearLayout>
+            
+            <LinearLayout
+                android:id="@+id/llLocationMessage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="10dp"
+                android:background="#2A1E6E"
+                android:visibility="gone">
+                
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnOpenLocation"
+                    style="@style/Widget.Material3.Button.IconButton"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    app:icon="@android:drawable/ic_menu_myplaces"
+                    app:iconTint="#FFFFFF"
+                    app:iconPadding="0dp"
+                    app:cornerRadius="20dp"
+                    app:backgroundTint="#FF5722"
+                    android:contentDescription="Abrir ubicación" />
+                
+                <TextView
+                    android:id="@+id/tvLocationText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingStart="10dp"
+                    android:textColor="#FFFFFF"
+                    android:text="📍 Ubicación" />
+            </LinearLayout>
 
             <TextView
                 android:id="@+id/tvMessageText"

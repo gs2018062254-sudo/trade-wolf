@@ -35,12 +35,8 @@ class MarketplaceActivity : AppCompatActivity() {
     private val categorias = listOf(
         "Todas las categorías",
         "Ropa",
-        "Comida",
-        "Bebidas",
         "Accesorios",
         "Tecnología",
-        "Maquillaje",
-        "Juguetes",
         "Libros",
         "Apuntes",
         "Asesorías",
@@ -55,7 +51,6 @@ class MarketplaceActivity : AppCompatActivity() {
         "Producto nuevo",
         "Producto usado",
         "Servicio",
-        "Comida por pedido",
         "Emprendimiento estable",
         "Emprendimiento itinerante",
         "Producto único",
@@ -169,6 +164,12 @@ class MarketplaceActivity : AppCompatActivity() {
                         post["whatsapp"] = postSnapshot.child("whatsapp").getValue(String::class.java) ?: ""
                         post["imagenUrl"] = postSnapshot.child("imagenUrl").getValue(String::class.java) ?: ""
                         post["vendido"] = postSnapshot.child("vendido").getValue(String::class.java) ?: "false"
+                        val latitud = postSnapshot.child("latitud").getValue(Double::class.java)
+                        val longitud = postSnapshot.child("longitud").getValue(Double::class.java)
+                        if (latitud != null && longitud != null) {
+                            post["latitud"] = latitud.toString()
+                            post["longitud"] = longitud.toString()
+                        }
 
                         listaPosts.add(post)
                     }
@@ -293,11 +294,16 @@ class MarketplaceActivity : AppCompatActivity() {
         tvVendido.visibility = if (esVendido) View.VISIBLE else View.GONE
 
         val tvInfo = TextView(this)
-        tvInfo.text = """
-            Categoría: ${post["categoria"].orEmpty().ifBlank { "Sin categoría" }}
-            Tipo: ${post["tipo"].orEmpty().ifBlank { "Sin tipo" }}
-            Precio: S/ ${post["precio"].orEmpty().ifBlank { "0.00" }}
-        """.trimIndent()
+        val tieneUbicacion = post.containsKey("latitud") && post.containsKey("longitud")
+        val infoTexto = buildString {
+            append("Categoría: ${post["categoria"].orEmpty().ifBlank { "Sin categoría" }}\n")
+            append("Tipo: ${post["tipo"].orEmpty().ifBlank { "Sin tipo" }}\n")
+            append("Precio: S/ ${post["precio"].orEmpty().ifBlank { "0.00" }}")
+            if (tieneUbicacion) {
+                append("\n📍 Ubicación disponible")
+            }
+        }
+        tvInfo.text = infoTexto
         tvInfo.setTextColor(Color.rgb(180, 190, 220))
         tvInfo.textSize = 14f
 
@@ -479,6 +485,23 @@ class MarketplaceActivity : AppCompatActivity() {
         }
     }
 
+    private fun abrirUbicacionEnMaps(latitud: String, longitud: String) {
+        try {
+            val uri = Uri.parse("geo:$latitud,$longitud?q=$latitud,$longitud(Ubicación)")
+            val intent = Intent(Intent.ACTION_VIEW, uri)
+            intent.setPackage("com.google.android.apps.maps")
+            if (intent.resolveActivity(packageManager) != null) {
+                startActivity(intent)
+            } else {
+                val uriWeb = Uri.parse("https://www.google.com/maps?q=$latitud,$longitud")
+                val intentWeb = Intent(Intent.ACTION_VIEW, uriWeb)
+                startActivity(intentWeb)
+            }
+        } catch (e: Exception) {
+            Toast.makeText(this, "No se pudo abrir Google Maps", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private fun mostrarDetallePost(post: MutableMap<String, String>) {
         val postUserId = post["userId"].orEmpty()
 
@@ -489,31 +512,36 @@ class MarketplaceActivity : AppCompatActivity() {
                     val apellidos = snapshot.child("apellidos").getValue(String::class.java) ?: ""
                     val nombreCompleto = "$nombres $apellidos".trim().ifBlank { "Usuario no registrado" }
 
-                    val detalle = """
-                        Nombre: ${post["titulo"].orEmpty().ifBlank { "Sin título" }}
-                        
-                        Descripción:
-                        ${post["descripcion"].orEmpty().ifBlank { "Sin descripción" }}
-                        
-                        Categoría: ${post["categoria"].orEmpty().ifBlank { "Sin categoría" }}
-                        
-                        Tipo: ${post["tipo"].orEmpty().ifBlank { "Sin tipo" }}
-                        
-                        Precio: S/ ${post["precio"].orEmpty().ifBlank { "0.00" }}
-                        
-                        WhatsApp: ${post["whatsapp"].orEmpty().ifBlank { "No registrado" }}
-                        
-                        Publicado por: $nombreCompleto
-                    """.trimIndent()
+                    val tieneUbicacion = post.containsKey("latitud") && post.containsKey("longitud")
 
-                    AlertDialog.Builder(this@MarketplaceActivity)
+                    val detalle = buildString {
+                        append("Nombre: ${post["titulo"].orEmpty().ifBlank { "Sin título" }}\n\n")
+                        append("Descripción:\n${post["descripcion"].orEmpty().ifBlank { "Sin descripción" }}\n\n")
+                        append("Categoría: ${post["categoria"].orEmpty().ifBlank { "Sin categoría" }}\n\n")
+                        append("Tipo: ${post["tipo"].orEmpty().ifBlank { "Sin tipo" }}\n\n")
+                        append("Precio: S/ ${post["precio"].orEmpty().ifBlank { "0.00" }}\n\n")
+                        if (tieneUbicacion) {
+                            append("Ubicación: ${post["latitud"]}, ${post["longitud"]}\n\n")
+                        }
+                        append("WhatsApp: ${post["whatsapp"].orEmpty().ifBlank { "No registrado" }}\n\n")
+                        append("Publicado por: $nombreCompleto")
+                    }
+
+                    val builder = AlertDialog.Builder(this@MarketplaceActivity)
                         .setTitle("Detalle de publicación")
                         .setMessage(detalle)
                         .setPositiveButton("Contactar") { _, _ ->
                             mostrarOpcionesContacto(postUserId, post)
                         }
                         .setNegativeButton("Cerrar", null)
-                        .show()
+
+                    if (tieneUbicacion) {
+                        builder.setNeutralButton("Ver ubicación") { _, _ ->
+                            abrirUbicacionEnMaps(post["latitud"]!!, post["longitud"]!!)
+                        }
+                    }
+
+                    builder.show()
                 }
 
                 override fun onCancelled(error: DatabaseError) {
