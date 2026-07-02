@@ -81,8 +81,6 @@ class CreatePostActivity : AppCompatActivity() {
         "Bebidas",
         "Accesorios",
         "Tecnología",
-        "Maquillaje",
-        "Juguetes",
         "Libros",
         "Apuntes",
         "Asesorías",

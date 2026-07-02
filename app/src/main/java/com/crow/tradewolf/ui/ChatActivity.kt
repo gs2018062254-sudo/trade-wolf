@@ -237,7 +237,7 @@ class ChatActivity : AppCompatActivity() {
         }
 
         btnComprar.setOnClickListener {
-            Toast.makeText(this, "Función de compra en desarrollo", Toast.LENGTH_SHORT).show()
+            mostrarOpcionesDePago()
         }
     }
     
@@ -313,6 +313,37 @@ class ChatActivity : AppCompatActivity() {
         } catch (e: Exception) {
             Toast.makeText(this, "Error al abrir ubicación: ${e.message}", Toast.LENGTH_SHORT).show()
         }
+    }
+    
+    private fun mostrarOpcionesDePago() {
+        val opciones = arrayOf("Yape", "Efectivo", "Transferencia bancaria")
+        
+        AlertDialog.Builder(this)
+            .setTitle("Método de pago")
+            .setItems(opciones) { _, which ->
+                val metodoSeleccionado = opciones[which]
+                // Enviamos un mensaje en el chat con el metodo que selecciono
+                enviarMensajeMetodoDePago(metodoSeleccionado)
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+    
+    private fun enviarMensajeMetodoDePago(metodo: String) {
+        val mensaje = "¡Hola! Quiero pagar con $metodo"
+        
+        // Enviamos el mensaje como texto normal
+        chatRepository.sendMessage(
+            receiverId,
+            mensaje,
+            onSuccess = {
+                // El mensaje se agrega automáticamente a través del listener en tiempo real
+                Toast.makeText(this, "Método de pago enviado: $metodo", Toast.LENGTH_SHORT).show()
+            },
+            onError = { error ->
+                Toast.makeText(this, "Error al enviar mensaje: $error", Toast.LENGTH_SHORT).show()
+            }
+        )
     }
 
     private fun setupRecyclerView() {
@@ -421,7 +452,7 @@ class ChatActivity : AppCompatActivity() {
             onSuccess = {
                 etMessage.text?.clear()
                 btnSend.isEnabled = true
-                isNewChatWithProduct = false // Resetear la bandera después de enviar
+                isNewChatWithProduct = false // Resetear la bandera despues de enviar
             },
             onError = { error ->
                 btnSend.isEnabled = true

@@ -22,7 +22,7 @@ class ChatRepository {
         return auth.currentUser?.uid
     }
 
-    // Generar ID único para el chat entre dos usuarios (solo para ordenarlos)
+    // Genera ID único para el chat entre dos usuarios (solo para ordenarlos)
     fun getChatId(userId1: String, userId2: String): String {
         return if (userId1 < userId2) {
             "${userId1}_$userId2"
@@ -31,7 +31,7 @@ class ChatRepository {
         }
     }
 
-    // Subir imagen a Firebase Storage
+    //imagen a Firebase Storage
     fun uploadImageToStorage(
         imageUri: Uri,
         onSuccess: (String) -> Unit,

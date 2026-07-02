@@ -20,7 +20,7 @@ class HomeActivity : AppCompatActivity() {
 
     private val authRepository = AuthRepository()
 
-    // Lanzador para pedir permiso de notificaciones
+    //pedir permiso de notificaciones
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
