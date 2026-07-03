@@ -500,7 +500,7 @@ class MarketplaceActivity : AppCompatActivity() {
         } catch (e: Exception) {
             Toast.makeText(this, "No se pudo abrir Google Maps", Toast.LENGTH_SHORT).show()
         }
-    }}
+    }
 
     private fun mostrarDetallePost(post: MutableMap<String, String>) {
         val postUserId = post["userId"].orEmpty()
